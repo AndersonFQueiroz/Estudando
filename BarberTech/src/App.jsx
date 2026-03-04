@@ -115,14 +115,32 @@ function App() {
     const diferencaHoras = (dataAgendamento - agora) / (1000 * 60 * 60)
     return diferencaHoras > 0 && diferencaHoras <= 2.1
   }
+const totalFaturamento = agendamentosFiltradosPorData.filter(item => item.status === 'concluido').reduce((acc, item) => acc + Number(item.valor), 0)
 
-  const totalFaturamento = agendamentosFiltradosPorData.filter(item => item.status === 'concluido').reduce((acc, item) => acc + Number(item.valor), 0)
+// Lógica de Horário Passado
+const ehHorarioPassado = (h) => {
+  const hoje = new Date()
+  const [anoH, mesH, diaH] = data.split('-')
+  const dataAgendada = new Date(anoH, mesH - 1, diaH)
 
-  const horariosDisponiveis = []
-  for(let i=8; i<=20; i++) {
-    horariosDisponiveis.push(`${String(i).padStart(2, '0')}:00`)
-    horariosDisponiveis.push(`${String(i).padStart(2, '0')}:30`)
-  }
+  // Só bloqueia se for hoje
+  if (dataAgendada.toDateString() !== hoje.toDateString()) return false
+
+  const [horas, minutos] = h.split(':').map(Number)
+  const agoraHoras = hoje.getHours()
+  const agoraMinutos = hoje.getMinutes()
+
+  if (horas < agoraHoras) return true
+  if (horas === agoraHoras && minutos < agoraMinutos) return true
+  return false
+}
+
+// Gerador de Horários (08:00 às 20:00)
+const horariosDisponiveis = []
+for(let i=8; i<=20; i++) {
+  horariosDisponiveis.push(`${String(i).padStart(2, '0')}:00`)
+  horariosDisponiveis.push(`${String(i).padStart(2, '0')}:30`)
+}
 
   return (
     <div className="app-container">
@@ -234,24 +252,36 @@ function App() {
                   )}
                 </AnimatePresence>
               </div>
-
-              <div className={`custom-select mini ${seletorHoraAberto ? 'open' : ''}`} onClick={() => setSeletorHoraAberto(!seletorHoraAberto)}>
-                <div className="select-trigger">
-                  {horario ? horario : 'Hora'}
-                  <span className="icon">🕒</span>
-                </div>
-                <AnimatePresence>
-                  {seletorHoraAberto && (
-                    <motion.div className="select-options scrollable">
-                      {horariosDisponiveis.map(h => (
-                        <div key={h} className="option-item justify-center" onClick={(e) => { e.stopPropagation(); setHorario(h); setSeletorHoraAberto(false); }}>
-                          {h}
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+{/* --- SELETOR DE HORA --- */}
+<div className={`custom-select mini ${seletorHoraAberto ? 'open' : ''}`} onClick={() => setSeletorHoraAberto(!seletorHoraAberto)}>
+  <div className="select-trigger">
+    {horario ? horario : 'Hora'}
+    <span className="icon">🕒</span>
+  </div>
+  <AnimatePresence>
+    {seletorHoraAberto && (
+      <motion.div className="select-options scrollable">
+        {horariosDisponiveis.map(h => {
+          const passado = ehHorarioPassado(h)
+          return (
+            <div 
+              key={h} 
+              className={`option-item justify-center ${passado ? 'disabled-day' : ''}`} 
+              onClick={(e) => { 
+                if (passado) return
+                e.stopPropagation(); 
+                setHorario(h); 
+                setSeletorHoraAberto(false); 
+              }}
+            >
+              {h}
+            </div>
+          )
+        })}
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
             </div>
 
             <button type="submit">Agendar Agora</button>
