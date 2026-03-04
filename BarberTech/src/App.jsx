@@ -22,6 +22,24 @@ function App() {
   const [agora, setAgora] = useState(new Date())
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
+
+  // --- MÁSCARA DE TELEFONE ---
+  const handleTelefone = (e) => {
+    let v = e.target.value.replace(/\D/g, "") // Remove tudo que não é número
+    if (v.length > 11) v = v.substring(0, 11) // Limita a 11 dígitos
+
+    if (v.length > 10) {
+      v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3")
+    } else if (v.length > 6) {
+      v = v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3")
+    } else if (v.length > 2) {
+      v = v.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2")
+    } else if (v.length > 0) {
+      v = v.replace(/^(\d*)/, "($1")
+    }
+    setTelefone(v)
+  }
+
   const [servicoSelecionado, setServicoSelecionado] = useState('')
   const [horario, setHorario] = useState('')
   const [data, setData] = useState('')
@@ -46,6 +64,7 @@ function App() {
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
     const dataAlvo = new Date(anoCal, mesCal, dia)
+    dataAlvo.setHours(0, 0, 0, 0)
     return dataAlvo < hoje
   }
 
@@ -193,7 +212,7 @@ for(let i=8; i<=20; i++) {
         <section className="novo-agendamento">
           <form onSubmit={adicionarAgendamento}>
             <input type="text" placeholder="Nome do Cliente" value={nome} onChange={(e)=>setNome(e.target.value)} />
-            <input type="text" placeholder="WhatsApp" value={telefone} onChange={(e)=>setTelefone(e.target.value)} />
+            <input type="text" placeholder="WhatsApp" value={telefone} onChange={handleTelefone} />
             
             <div className={`custom-select ${seletorServicoAberto ? 'open' : ''}`} onClick={() => setSeletorServicoAberto(!seletorServicoAberto)}>
               <div className="select-trigger">

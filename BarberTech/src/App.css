@@ -175,10 +175,12 @@ button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 0 25px 
 .empty-day { cursor: default; }
 
 .disabled-day {
-  opacity: 0.15;
-  cursor: not-allowed;
-  text-decoration: line-through;
-  filter: grayscale(1);
+  opacity: 0.2 !important;
+  cursor: not-allowed !important;
+  text-decoration: line-through !important;
+  filter: grayscale(1) !important;
+  pointer-events: none !important;
+  color: #444 !important;
 }
 
 .badge-concluido { font-size: 0.6rem; font-weight: bold; color: #27ae60; border: 1px solid #27ae60; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
