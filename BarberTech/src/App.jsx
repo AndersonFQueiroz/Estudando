@@ -123,7 +123,7 @@ function App() {
   }
 
   const enviarLembrete = (item) => {
-    const mensagem = `Olá ${item.cliente}, aqui é da BarberTech! ✂️\nPassando para lembrar do seu agendamento de *${item.servico}* hoje às *${item.horario}*. Nos vemos em breve!`
+    const mensagem = `Olá ${item.cliente}, aqui é da BarberTech!💈\nPassando para lembrar do seu agendamento de *${item.servico}* hoje às *${item.horario}*. Nos vemos em breve!`
     const url = `https://wa.me/55${item.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`
     window.open(url, '_blank')
   }
