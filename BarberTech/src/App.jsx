@@ -41,6 +41,14 @@ function App() {
   const primeiroDia = new Date(anoCal, mesCal, 1).getDay()
   const gridDias = [...Array(primeiroDia).fill(null), ...Array.from({length: diasNoMes}, (_, i) => i + 1)]
 
+  const ehDataPassada = (dia) => {
+    if (!dia) return false
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    const dataAlvo = new Date(anoCal, mesCal, dia)
+    return dataAlvo < hoje
+  }
+
   const mudarMes = (offset) => {
     let novoMes = mesCal + offset
     let novoAno = anoCal
@@ -50,6 +58,7 @@ function App() {
   }
 
   const selecionarDia = (dia) => {
+    if (ehDataPassada(dia)) return
     const dataFormatada = `${anoCal}-${String(mesCal + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
     setData(dataFormatada)
     setSeletorDataAberto(false)
@@ -208,15 +217,18 @@ function App() {
                       </div>
                       <div className="calendar-grid">
                         {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="weekday">{d}</div>)}
-                        {gridDias.map((dia, i) => (
-                          <div 
-                            key={i} 
-                            className={`day-item ${dia ? 'active-day' : 'empty-day'} ${data === `${anoCal}-${String(mesCal + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}` ? 'selected' : ''}`}
-                            onClick={() => dia && selecionarDia(dia)}
-                          >
-                            {dia}
-                          </div>
-                        ))}
+                        {gridDias.map((dia, i) => {
+                          const passado = ehDataPassada(dia)
+                          return (
+                            <div 
+                              key={i} 
+                              className={`day-item ${dia ? (passado ? 'disabled-day' : 'active-day') : 'empty-day'} ${data === `${anoCal}-${String(mesCal + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}` ? 'selected' : ''}`}
+                              onClick={() => dia && !passado && selecionarDia(dia)}
+                            >
+                              {dia}
+                            </div>
+                          )
+                        })}
                       </div>
                     </motion.div>
                   )}
