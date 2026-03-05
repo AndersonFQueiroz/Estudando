@@ -160,7 +160,18 @@ function App() {
           <div className="grafico-container">
             <h3>Faturamento por Serviço (R$)</h3>
             <div style={{ width: '100%', height: 200 }}>
-              <ResponsiveContainer><BarChart data={dadosGrafico}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#444" /><XAxis dataKey="nome" stroke="#888" fontSize={12} /><YAxis hide /><Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} /><Bar dataKey="total" radius={[4, 4, 0, 0]}>{dadosGrafico.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}</Bar></BarChart></ResponsiveContainer>
+              <ResponsiveContainer><BarChart data={dadosGrafico}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#444" /><XAxis dataKey="nome" stroke="#888" fontSize={12} /><YAxis hide />                  <Tooltip 
+                    cursor={{fill: 'transparent'}}
+                    formatter={(value) => [`R$ ${Number(value).toFixed(2)}`, 'Total']}
+                    contentStyle={{ 
+                      backgroundColor: '#0d0d0d', 
+                      border: '1px solid #00f2ff', 
+                      borderRadius: '8px',
+                      padding: '10px'
+                    }}
+                    itemStyle={{ color: '#00f2ff', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#fff', marginBottom: '5px', fontWeight: 'bold' }}
+                  /><Bar dataKey="total" radius={[4, 4, 0, 0]}>{dadosGrafico.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}</Bar></BarChart></ResponsiveContainer>
             </div>
           </div>
         )}

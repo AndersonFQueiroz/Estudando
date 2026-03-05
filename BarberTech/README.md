@@ -43,9 +43,17 @@ O **BarberTech** nasceu da necessidade de modernizar a gestão de barbearias. Ab
    ```
 
 ## 📸 Showcase
-*(Espaço reservado para colocar prints do projeto rodando no seu Notion ou GitHub)*
-- Adicione o print da tela inicial aqui.
-- Adicione o print mostrando o bloqueio de horários.
+- Em Breve!
 
 ---
 *Desenvolvido como projeto de estudo e evolução arquitetural em React.*
+
+## 🗺️ Roadmap de Evolução
+
+O projeto segue em desenvolvimento ativo, com as seguintes metas de curto e médio prazo:
+
+- [ ] **Integração com Supabase:** Migração do armazenamento para Banco de Dados SQL em nuvem com sincronização em tempo real.
+- [ ] **Suporte PWA:** Transformação da aplicação em um Progressive Web App instalável em dispositivos móveis e desktop.
+- [ ] **Autenticação de Usuários:** Sistema de login seguro para barbeiros e administradores.
+- [ ] **Relatórios Avançados:** Exportação de dados financeiros mensais e estatísticas de retenção de clientes.
+- [ ] **Deploy na Vercel:** Hospedagem oficial para acesso via URL pública.
