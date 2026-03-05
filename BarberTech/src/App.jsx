@@ -3,6 +3,7 @@ import './App.css'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import logo from '../temp_visuals/Logo_BarberTech.png'
+import { supabase } from './supabase'
 
 const SERVICOS_DISPONIVEIS = [
   { nome: 'Corte Masculino', preco: 40, color: '#00d2ff', duracao: 30 },
@@ -14,12 +15,8 @@ const SERVICOS_DISPONIVEIS = [
 ]
 
 function App() {
-  const [agendamentos, setAgendamentos] = useState(() => {
-    try {
-      const salvos = localStorage.getItem('barbertech_v4_data')
-      return salvos ? JSON.parse(salvos) : []
-    } catch (e) { return [] }
-  })
+  const [agendamentos, setAgendamentos] = useState([])
+  const [carregando, setCarregando] = useState(true)
 
   const [agora, setAgora] = useState(new Date())
   const [nome, setNome] = useState('')
@@ -72,7 +69,19 @@ function App() {
     setSeletorDataAberto(false)
   }
 
-  useEffect(() => { localStorage.setItem('barbertech_v4_data', JSON.stringify(agendamentos)) }, [agendamentos])
+  // --- NOVA LÓGICA DO SUPABASE ---
+  useEffect(() => {
+    buscarAgendamentos()
+  }, [])
+
+  const buscarAgendamentos = async () => {
+    setCarregando(true)
+    const { data, error } = await supabase.from('agendamentos').select('*')
+    if (error) console.error("Erro ao buscar:", error)
+    else setAgendamentos(data || [])
+    setCarregando(false)
+  }
+
   useEffect(() => { const timer = setInterval(() => setAgora(new Date()), 60000); return () => clearInterval(timer) }, [])
 
   const sEncontrado = SERVICOS_DISPONIVEIS.find(s => s.nome === servicoSelecionado)
@@ -92,14 +101,39 @@ function App() {
     return { nome: servico.nome.split(' ')[0], total, color: servico.color }
   }).filter(d => d.total > 0)
 
-  const adicionarAgendamento = (e) => {
+  const adicionarAgendamento = async (e) => {
     e.preventDefault()
     if (!nome || !servicoSelecionado || !horario || !data) return alert("Preencha todos os campos!")
-    setAgendamentos([...agendamentos, { id: Date.now(), cliente: nome, telefone, servico: servicoSelecionado, horario, data, valor: precoAtual, status: 'pendente' }])
+    
+    // Mostra um aviso enquanto salva (opcional)
+    const novo = { cliente: nome, telefone, servico: servicoSelecionado, horario, data, valor: precoAtual, status: 'pendente' }
+    
+    // Insere na Nuvem (Supabase)
+    const { data: inserido, error } = await supabase.from('agendamentos').insert([novo]).select()
+    
+    if (error) {
+      alert("Erro ao agendar na nuvem: " + error.message)
+      console.error(error)
+      return
+    }
+
+    // Se deu certo, atualiza a tela
+    setAgendamentos([...agendamentos, inserido[0]])
     setNome(''); setTelefone(''); setServicoSelecionado(''); setHorario(''); setData('')
   }
 
-  const mudarStatus = (id, nStatus) => setAgendamentos(agendamentos.map(i => i.id === id ? { ...i, status: nStatus } : i))
+  const mudarStatus = async (id, nStatus) => {
+    // 1. Atualiza a tela primeiro (UI Otimista) para não parecer lento
+    const listaAntiga = [...agendamentos]
+    setAgendamentos(agendamentos.map(i => i.id === id ? { ...i, status: nStatus } : i))
+
+    // 2. Manda a ordem pro Supabase
+    const { error } = await supabase.from('agendamentos').update({ status: nStatus }).eq('id', id)
+    if (error) {
+      alert("Erro de conexão! Revertendo...")
+      setAgendamentos(listaAntiga) // Desfaz a mudança se falhou na nuvem
+    }
+  }
   
   const enviarLembrete = (i) => {
     const mensagemLimpa = `Olá ${i.cliente}, aqui é da BarberTech!\nPassando para lembrar do seu agendamento de *${i.servico}* hoje às *${i.horario}*. Nos vemos em breve!`;
@@ -163,12 +197,7 @@ function App() {
               <ResponsiveContainer><BarChart data={dadosGrafico}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#444" /><XAxis dataKey="nome" stroke="#888" fontSize={12} /><YAxis hide />                  <Tooltip 
                     cursor={{fill: 'transparent'}}
                     formatter={(value) => [`R$ ${Number(value).toFixed(2)}`, 'Total']}
-                    contentStyle={{ 
-                      backgroundColor: '#0d0d0d', 
-                      border: '1px solid #00f2ff', 
-                      borderRadius: '8px',
-                      padding: '10px'
-                    }}
+                    contentStyle={{ backgroundColor: '#0d0d0d', border: '1px solid #00f2ff', borderRadius: '8px', padding: '10px' }}
                     itemStyle={{ color: '#00f2ff', fontWeight: 'bold' }}
                     labelStyle={{ color: '#fff', marginBottom: '5px', fontWeight: 'bold' }}
                   /><Bar dataKey="total" radius={[4, 4, 0, 0]}>{dadosGrafico.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}</Bar></BarChart></ResponsiveContainer>
@@ -186,17 +215,11 @@ function App() {
               <AnimatePresence>{seletorServicoAberto && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="select-options">{SERVICOS_DISPONIVEIS.map(s => (<div key={s.nome} className="option-item" onClick={(e) => { e.stopPropagation(); setServicoSelecionado(s.nome); setSeletorServicoAberto(false); }}><span className="dot" style={{ backgroundColor: s.color }}></span>{s.nome}<span className="price">R$ {s.preco.toFixed(2)}</span></div>))}</motion.div>)}</AnimatePresence>
             </div>
             <div className="row">
-              <div 
-                className={`custom-select mini ${seletorDataAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} 
-                onClick={() => servicoSelecionado ? setSeletorDataAberto(!seletorDataAberto) : alert('Selecione um serviço primeiro!')}
-              >
+              <div className={`custom-select mini ${seletorDataAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} onClick={() => servicoSelecionado ? setSeletorDataAberto(!seletorDataAberto) : alert('Selecione um serviço primeiro!')}>
                 <div className="select-trigger">{data ? data.split('-').reverse().join('/') : 'Data'}<span className="icon">📅</span></div>
                 <AnimatePresence>{seletorDataAberto && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="select-options calendar-popup" onClick={(e) => e.stopPropagation()}><div className="calendar-header"><button type="button" onClick={() => mudarMes(-1)}>◀</button><span>{nomeMeses[mesCal]} {anoCal}</span><button type="button" onClick={() => mudarMes(1)}>▶</button></div><div className="calendar-grid">{['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="weekday">{d}</div>)}{gridDias.map((dia, i) => { const passado = ehDataPassada(dia); return (<div key={i} className={`day-item ${dia ? (passado ? 'disabled-day' : 'active-day') : 'empty-day'} ${data === `${anoCal}-${String(mesCal + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}` ? 'selected' : ''}`} onClick={() => dia && !passado && selecionarDia(dia)}>{dia}</div>) })}</div></motion.div>)}</AnimatePresence>
               </div>
-              <div 
-                className={`custom-select mini ${seletorHoraAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} 
-                onClick={() => servicoSelecionado ? setSeletorHoraAberto(!seletorHoraAberto) : alert('Selecione um serviço primeiro!')}
-              >
+              <div className={`custom-select mini ${seletorHoraAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} onClick={() => servicoSelecionado ? setSeletorHoraAberto(!seletorHoraAberto) : alert('Selecione um serviço primeiro!')}>
                 <div className="select-trigger">{horario ? horario : 'Hora'}<span className="icon">🕒</span></div>
                 <AnimatePresence>{seletorHoraAberto && (<motion.div className="select-options scrollable">{horariosDisponiveis.map(h => { const bloqueado = ehHorarioBloqueado(h); return (<div key={h} className={`option-item justify-center ${bloqueado ? 'disabled-day' : ''}`} onClick={(e) => { if (bloqueado) return; e.stopPropagation(); setHorario(h); setSeletorHoraAberto(false); }}>{h}</div>) })}</motion.div>)}</AnimatePresence>
               </div>
@@ -207,11 +230,17 @@ function App() {
         <section className="dashboard">
           <div className="header-lista"><h2>Próximos Clientes</h2><input className="input-busca" type="text" placeholder="🔍 Buscar" value={busca} onChange={(e) => setBusca(e.target.value)} /></div>
           <div className="lista-agendamentos">
-            <AnimatePresence>{agendamentos.filter(item => item.cliente.toLowerCase().includes(busca.toLowerCase())).sort((a,b) => a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario)).map((item) => { 
-              const dataAgendamento = new Date(`${item.data}T${item.horario}:00`)
-              const alertaAtivo = item.status === 'pendente' && (dataAgendamento - agora) / (1000 * 60 * 60) > 0 && (dataAgendamento - agora) / (1000 * 60 * 60) <= 2.1
-              return (<motion.div key={item.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`card-agendamento ${item.status} ${alertaAtivo ? 'urgente' : ''}`}><div className="data-horario"><span className="badge-hora">{item.horario}</span><span className="badge-data">{item.data.split('-').reverse().slice(0, 2).join('/')}</span></div><div className="info"><strong>{item.cliente}</strong><span>{item.servico}</span></div><div className="acoes">{alertaAtivo && <button type="button" className="btn-auto-zap" onClick={() => enviarLembrete(item)}>AVISAR 2H 📱</button>}{item.status === 'pendente' && !alertaAtivo && <button type="button" className="btn-zap" onClick={() => enviarLembrete(item)}>📱</button>}{item.status === 'pendente' && <button type="button" className="btn-concluir" onClick={() => mudarStatus(item.id, 'concluido')}>✅</button>}{item.status === 'concluido' && <span className="badge-concluido">CONCLUÍDO</span>}<button type="button" className="btn-lixo" onClick={() => mudarStatus(item.id, 'excluido')}>🗑️</button></div></motion.div>) 
-            })}</AnimatePresence>
+            {carregando ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--primary)' }}>
+                Sincronizando com a Nuvem... ☁️
+              </div>
+            ) : (
+              <AnimatePresence>{agendamentos.filter(item => item.cliente.toLowerCase().includes(busca.toLowerCase())).sort((a,b) => a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario)).map((item) => { 
+                const dataAgendamento = new Date(`${item.data}T${item.horario}:00`)
+                const alertaAtivo = item.status === 'pendente' && (dataAgendamento - agora) / (1000 * 60 * 60) > 0 && (dataAgendamento - agora) / (1000 * 60 * 60) <= 2.1
+                return (<motion.div key={item.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`card-agendamento ${item.status} ${alertaAtivo ? 'urgente' : ''}`}><div className="data-horario"><span className="badge-hora">{item.horario}</span><span className="badge-data">{item.data.split('-').reverse().slice(0, 2).join('/')}</span></div><div className="info"><strong>{item.cliente}</strong><span>{item.servico}</span></div><div className="acoes">{alertaAtivo && <button type="button" className="btn-auto-zap" onClick={() => enviarLembrete(item)}>AVISAR 2H 📱</button>}{item.status === 'pendente' && !alertaAtivo && <button type="button" className="btn-zap" onClick={() => enviarLembrete(item)}>📱</button>}{item.status === 'pendente' && <button type="button" className="btn-concluir" onClick={() => mudarStatus(item.id, 'concluido')}>✅</button>}{item.status === 'concluido' && <span className="badge-concluido">CONCLUÍDO</span>}<button type="button" className="btn-lixo" onClick={() => mudarStatus(item.id, 'excluido')}>🗑️</button></div></motion.div>) 
+              })}</AnimatePresence>
+            )}
           </div>
         </section>
       </main>
