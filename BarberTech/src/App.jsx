@@ -102,8 +102,9 @@ function App() {
   const mudarStatus = (id, nStatus) => setAgendamentos(agendamentos.map(i => i.id === id ? { ...i, status: nStatus } : i))
   
   const enviarLembrete = (i) => {
-    const msg = `Olá ${i.cliente}, aqui é da BarberTech!💈\nPassando para lembrar do seu agendamento de *${i.servico}* hoje às *${i.horario}*. Nos vemos em breve!`
-    window.open(`https://wa.me/55${i.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank')
+    const mensagemLimpa = `Olá ${i.cliente}, aqui é da BarberTech!\nPassando para lembrar do seu agendamento de *${i.servico}* hoje às *${i.horario}*. Nos vemos em breve!`;
+    const urlFormatada = `https://wa.me/55${i.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(mensagemLimpa)}`;
+    window.open(urlFormatada, '_blank');
   }
 
   const ehHorarioPassado = (h) => {
