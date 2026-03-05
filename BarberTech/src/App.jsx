@@ -15,8 +15,12 @@ const SERVICOS_DISPONIVEIS = [
 ]
 
 function App() {
+  const [sessao, setSessao] = useState(null)
   const [agendamentos, setAgendamentos] = useState([])
   const [carregando, setCarregando] = useState(true)
+
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
 
   const [agora, setAgora] = useState(new Date())
   const [nome, setNome] = useState('')
@@ -39,6 +43,42 @@ function App() {
   const diasNoMes = new Date(anoCal, mesCal + 1, 0).getDate()
   const primeiroDia = new Date(anoCal, mesCal, 1).getDay()
   const gridDias = [...Array(primeiroDia).fill(null), ...Array.from({length: diasNoMes}, (_, i) => i + 1)]
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSessao(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSessao(session))
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
+    if (error) alert("Erro ao entrar: " + error.message)
+  }
+
+  const handleLogout = () => supabase.auth.signOut()
+
+  useEffect(() => {
+    if (sessao) {
+      buscarAgendamentos()
+      
+      // --- SINCRONIZAÇÃO EM TEMPO REAL ---
+      const canal = supabase
+        .channel('agendamentos-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+          buscarAgendamentos()
+        })
+        .subscribe()
+
+      return () => { supabase.removeChannel(canal) }
+    }
+  }, [sessao])
+
+  const buscarAgendamentos = async () => {
+    const { data, error } = await supabase.from('agendamentos').select('*')
+    if (!error) setAgendamentos(data || [])
+    setCarregando(false)
+  }
 
   const handleTelefone = (e) => {
     let v = e.target.value.replace(/\D/g, "")
@@ -69,19 +109,6 @@ function App() {
     setSeletorDataAberto(false)
   }
 
-  // --- NOVA LÓGICA DO SUPABASE ---
-  useEffect(() => {
-    buscarAgendamentos()
-  }, [])
-
-  const buscarAgendamentos = async () => {
-    setCarregando(true)
-    const { data, error } = await supabase.from('agendamentos').select('*')
-    if (error) console.error("Erro ao buscar:", error)
-    else setAgendamentos(data || [])
-    setCarregando(false)
-  }
-
   useEffect(() => { const timer = setInterval(() => setAgora(new Date()), 60000); return () => clearInterval(timer) }, [])
 
   const sEncontrado = SERVICOS_DISPONIVEIS.find(s => s.nome === servicoSelecionado)
@@ -104,35 +131,18 @@ function App() {
   const adicionarAgendamento = async (e) => {
     e.preventDefault()
     if (!nome || !servicoSelecionado || !horario || !data) return alert("Preencha todos os campos!")
-    
-    // Mostra um aviso enquanto salva (opcional)
     const novo = { cliente: nome, telefone, servico: servicoSelecionado, horario, data, valor: precoAtual, status: 'pendente' }
-    
-    // Insere na Nuvem (Supabase)
     const { data: inserido, error } = await supabase.from('agendamentos').insert([novo]).select()
-    
-    if (error) {
-      alert("Erro ao agendar na nuvem: " + error.message)
-      console.error(error)
-      return
-    }
-
-    // Se deu certo, atualiza a tela
+    if (error) return alert("Erro ao agendar: " + error.message)
     setAgendamentos([...agendamentos, inserido[0]])
     setNome(''); setTelefone(''); setServicoSelecionado(''); setHorario(''); setData('')
   }
 
   const mudarStatus = async (id, nStatus) => {
-    // 1. Atualiza a tela primeiro (UI Otimista) para não parecer lento
     const listaAntiga = [...agendamentos]
     setAgendamentos(agendamentos.map(i => i.id === id ? { ...i, status: nStatus } : i))
-
-    // 2. Manda a ordem pro Supabase
     const { error } = await supabase.from('agendamentos').update({ status: nStatus }).eq('id', id)
-    if (error) {
-      alert("Erro de conexão! Revertendo...")
-      setAgendamentos(listaAntiga) // Desfaz a mudança se falhou na nuvem
-    }
+    if (error) setAgendamentos(listaAntiga)
   }
   
   const enviarLembrete = (i) => {
@@ -167,14 +177,40 @@ function App() {
 
   const horariosDisponiveis = []
   for(let i=8; i<=20; i++) { 
-    horariosDisponiveis.push(`${String(i).padStart(2, '0')}:00`)
-    horariosDisponiveis.push(`${String(i).padStart(2, '0')}:30`) 
+    horariosDisponiveis.push(`${String(i).padStart(2, '0')}:00`); horariosDisponiveis.push(`${String(i).padStart(2, '0')}:30`) 
+  }
+
+  if (!sessao) {
+    return (
+      <div className="app-container login-screen">
+        <div className="logo-container"><img src={logo} alt="Logo" className="app-logo" /></div>
+        <form onSubmit={handleLogin} className="login-form">
+          <h2>Acesso Restrito</h2>
+          <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+          <button type="submit">Entrar no Sistema</button>
+        </form>
+      </div>
+    )
   }
 
   return (
     <div className="app-container">
       <header>
-        <div className="logo-container"><img src={logo} alt="Logo" className="app-logo" /></div>
+        <div className="header-top" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: '1.5rem', width: '100%' }}>
+          <div className="logo-container" style={{ marginBottom: 0, width: 'auto' }}>
+            <img src={logo} alt="Logo" className="app-logo" />
+          </div>
+          <button className="btn-logout-top" onClick={handleLogout}>
+            SAIR 
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '6px' }}>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        
         <div className="barbeiros-config">
           <span>Barbeiros Ativos:</span>
           <div className="barbeiros-selector">
@@ -215,11 +251,17 @@ function App() {
               <AnimatePresence>{seletorServicoAberto && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="select-options">{SERVICOS_DISPONIVEIS.map(s => (<div key={s.nome} className="option-item" onClick={(e) => { e.stopPropagation(); setServicoSelecionado(s.nome); setSeletorServicoAberto(false); }}><span className="dot" style={{ backgroundColor: s.color }}></span>{s.nome}<span className="price">R$ {s.preco.toFixed(2)}</span></div>))}</motion.div>)}</AnimatePresence>
             </div>
             <div className="row">
-              <div className={`custom-select mini ${seletorDataAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} onClick={() => servicoSelecionado ? setSeletorDataAberto(!seletorDataAberto) : alert('Selecione um serviço primeiro!')}>
+              <div 
+                className={`custom-select mini ${seletorDataAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} 
+                onClick={() => servicoSelecionado ? setSeletorDataAberto(!seletorDataAberto) : alert('Selecione um serviço primeiro!')}
+              >
                 <div className="select-trigger">{data ? data.split('-').reverse().join('/') : 'Data'}<span className="icon">📅</span></div>
                 <AnimatePresence>{seletorDataAberto && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="select-options calendar-popup" onClick={(e) => e.stopPropagation()}><div className="calendar-header"><button type="button" onClick={() => mudarMes(-1)}>◀</button><span>{nomeMeses[mesCal]} {anoCal}</span><button type="button" onClick={() => mudarMes(1)}>▶</button></div><div className="calendar-grid">{['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="weekday">{d}</div>)}{gridDias.map((dia, i) => { const passado = ehDataPassada(dia); return (<div key={i} className={`day-item ${dia ? (passado ? 'disabled-day' : 'active-day') : 'empty-day'} ${data === `${anoCal}-${String(mesCal + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}` ? 'selected' : ''}`} onClick={() => dia && !passado && selecionarDia(dia)}>{dia}</div>) })}</div></motion.div>)}</AnimatePresence>
               </div>
-              <div className={`custom-select mini ${seletorHoraAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} onClick={() => servicoSelecionado ? setSeletorHoraAberto(!seletorHoraAberto) : alert('Selecione um serviço primeiro!')}>
+              <div 
+                className={`custom-select mini ${seletorHoraAberto ? 'open' : ''} ${!servicoSelecionado ? 'disabled-trigger' : ''}`} 
+                onClick={() => servicoSelecionado ? setSeletorHoraAberto(!seletorHoraAberto) : alert('Selecione um serviço primeiro!')}
+              >
                 <div className="select-trigger">{horario ? horario : 'Hora'}<span className="icon">🕒</span></div>
                 <AnimatePresence>{seletorHoraAberto && (<motion.div className="select-options scrollable">{horariosDisponiveis.map(h => { const bloqueado = ehHorarioBloqueado(h); return (<div key={h} className={`option-item justify-center ${bloqueado ? 'disabled-day' : ''}`} onClick={(e) => { if (bloqueado) return; e.stopPropagation(); setHorario(h); setSeletorHoraAberto(false); }}>{h}</div>) })}</motion.div>)}</AnimatePresence>
               </div>
@@ -231,9 +273,7 @@ function App() {
           <div className="header-lista"><h2>Próximos Clientes</h2><input className="input-busca" type="text" placeholder="🔍 Buscar" value={busca} onChange={(e) => setBusca(e.target.value)} /></div>
           <div className="lista-agendamentos">
             {carregando ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--primary)' }}>
-                Sincronizando com a Nuvem... ☁️
-              </div>
+              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--primary)' }}>Sincronizando... ☁️</div>
             ) : (
               <AnimatePresence>{agendamentos.filter(item => item.cliente.toLowerCase().includes(busca.toLowerCase())).sort((a,b) => a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario)).map((item) => { 
                 const dataAgendamento = new Date(`${item.data}T${item.horario}:00`)
