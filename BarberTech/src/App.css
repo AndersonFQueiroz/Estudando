@@ -26,6 +26,53 @@ body {
 .logo-container { display: flex; justify-content: center; margin-bottom: 1.5rem; }
 .app-logo { width: 100%; max-width: 280px; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.2)); }
 
+/* --- CONFIG BARBEIROS --- */
+.barbeiros-config {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.barbeiros-config span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 900;
+  color: #666;
+}
+
+.barbeiros-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.barbeiros-selector button {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #fff;
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.barbeiros-selector button.active {
+  background: var(--primary);
+  color: #000;
+  border-color: var(--primary);
+  box-shadow: var(--glow);
+}
+
 .filtro-periodo { display: flex; background: rgba(255, 255, 255, 0.03); padding: 4px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 1rem; }
 .filtro-periodo button { flex: 1; background: transparent; border: none; color: #555; padding: 8px; font-size: 0.7rem; font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 7px; transition: all 0.3s; }
 .filtro-periodo button.active { background: var(--primary); color: #000; box-shadow: var(--glow); }
@@ -88,88 +135,20 @@ input:focus, .custom-select.open {
 .select-trigger .icon { opacity: 0.5; font-size: 0.8rem; }
 .custom-select.mini .select-options { max-height: 250px; }
 
-button[type="submit"] { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 5px; box-shadow: var(--glow); transition: 0.3s; }
-button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 242, 255, 0.6); }
-
-.header-lista { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-.header-lista h2 { font-size: 1rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-.input-busca { width: 100px; padding: 6px; font-size: 0.7rem; border-radius: 20px; }
-
-.lista-agendamentos { display: flex; flex-direction: column; gap: 12px; }
-.card-agendamento { background: var(--card); padding: 15px; border-radius: 12px; display: flex; align-items: center; border: 1px solid rgba(255, 255, 255, 0.05); }
-.card-agendamento.urgente { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); background: rgba(0, 242, 255, 0.05); }
-
-.data-horario { display: flex; flex-direction: column; align-items: center; margin-right: 15px; min-width: 50px; border-right: 1px solid rgba(255, 255, 255, 0.05); padding-right: 12px; }
-.badge-hora { font-size: 1.1rem; font-weight: 900; color: var(--primary); }
-.badge-data { font-size: 0.6rem; color: #555; }
-
-.info { flex-grow: 1; padding-right: 10px; overflow: hidden; }
-.info strong { display: block; font-size: 0.95rem; color: #eee; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-.info span { font-size: 0.7rem; color: #666; }
-
-.acoes { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
-.acoes button { 
-  background: #1a1a1a; 
-  border: 1px solid #333; 
-  padding: 8px; 
-  border-radius: 8px; 
-  cursor: pointer; 
-  color: #fff; 
-  font-size: 0.8rem; 
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.disabled-trigger {
+  opacity: 0.3;
+  cursor: not-allowed !important;
+  filter: grayscale(1);
 }
 
-.acoes button:hover {
-  transform: translateY(-2px);
-  border-color: var(--primary);
-  box-shadow: 0 0 8px rgba(0, 242, 255, 0.3);
-}
-
-.btn-zap:hover { background: var(--whatsapp) !important; color: #000 !important; border-color: var(--whatsapp); }
-.btn-concluir:hover { background: #27ae60 !important; color: #000 !important; border-color: #27ae60; }
-.btn-lixo:hover { background: #c0392b !important; color: #000 !important; border-color: #c0392b; }
-
-.btn-auto-zap { background: var(--primary) !important; color: #000 !important; font-weight: 900 !important; border: none !important; }
-
-/* --- CALENDAR POPUP STYLE --- */
-.calendar-popup { 
-  padding: 15px; 
-  width: 260px; 
-  left: 50%; 
-  transform: translateX(-50%) !important; 
-  cursor: default; 
-}
-
-.calendar-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 12px; 
-  color: var(--primary); 
-  font-weight: 900; 
-  font-size: 0.8rem; 
-  text-transform: uppercase; 
-}
-
-.calendar-header button { 
-  background: rgba(255,255,255,0.05); 
-  border: 1px solid #333; 
-  color: #fff; 
-  padding: 4px 10px; 
-  border-radius: 6px; 
-  cursor: pointer; 
-}
+/* --- CALENDAR POPUP --- */
+.calendar-popup { padding: 15px; width: 260px; left: 50%; transform: translateX(-50%) !important; cursor: default; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--primary); font-weight: 900; font-size: 0.8rem; text-transform: uppercase; }
+.calendar-header button { background: rgba(255,255,255,0.05); border: 1px solid #333; color: #fff; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
 .calendar-header button:hover { background: var(--primary); color: #000; }
-
 .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
 .weekday { font-size: 0.6rem; color: #555; font-weight: bold; margin-bottom: 5px; }
-.day-item { 
-  font-size: 0.8rem; 
-  padding: 6px 0; 
-  border-radius: 6px; 
-  cursor: pointer; 
-  border: 1px solid transparent; 
-}
+.day-item { font-size: 0.8rem; padding: 6px 0; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
 .active-day:hover { background: rgba(0, 242, 255, 0.1); border-color: var(--primary); color: var(--primary); }
 .day-item.selected { background: var(--primary); color: #000; font-weight: bold; box-shadow: var(--glow); }
 .empty-day { cursor: default; }
@@ -183,6 +162,32 @@ button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 0 25px 
   color: #444 !important;
 }
 
+button[type="submit"] { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 5px; box-shadow: var(--glow); transition: 0.3s; }
+button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 242, 255, 0.6); }
+
+.header-lista { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.header-lista h2 { font-size: 1rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.input-busca { width: 100px; padding: 6px; font-size: 0.7rem; border-radius: 20px; }
+
+.lista-agendamentos { display: flex; flex-direction: column; gap: 12px; }
+.card-agendamento { background: var(--card); padding: 15px; border-radius: 12px; display: flex; align-items: center; border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s; }
+.acoes button:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 0 8px rgba(0, 242, 255, 0.3); }
+.card-agendamento.urgente { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); background: rgba(0, 242, 255, 0.05); }
+
+.data-horario { display: flex; flex-direction: column; align-items: center; margin-right: 15px; min-width: 50px; border-right: 1px solid rgba(255, 255, 255, 0.05); padding-right: 12px; }
+.badge-hora { font-size: 1.1rem; font-weight: 900; color: var(--primary); }
+.badge-data { font-size: 0.6rem; color: #555; }
+
+.info { flex-grow: 1; padding-right: 10px; overflow: hidden; }
+.info strong { display: block; font-size: 0.95rem; color: #eee; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.info span { font-size: 0.7rem; color: #666; }
+
+.acoes { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.acoes button { background: #1a1a1a; border: 1px solid #333; padding: 8px; border-radius: 8px; cursor: pointer; color: #fff; font-size: 0.8rem; transition: all 0.2s; }
+.btn-auto-zap { background: var(--primary) !important; color: #000 !important; font-weight: 900 !important; border: none !important; }
+.btn-zap:hover { background: var(--whatsapp) !important; color: #000 !important; border-color: var(--whatsapp); }
+.btn-concluir:hover { background: #27ae60 !important; color: #000 !important; border-color: #27ae60; }
+.btn-lixo:hover { background: #c0392b !important; color: #000 !important; border-color: #c0392b; }
 .badge-concluido { font-size: 0.6rem; font-weight: bold; color: #27ae60; border: 1px solid #27ae60; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
 
 .concluido { opacity: 0.5; filter: grayscale(1); }
